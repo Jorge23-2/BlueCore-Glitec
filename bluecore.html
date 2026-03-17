@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlueCore OS | Quantum Water Monitoring</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-color: #050505;
+            --surface: #0f1218;
+            --accent: #00f2ff;
+            --accent-glow: rgba(0, 242, 255, 0.4);
+            --danger: #ff0055;
+            --success: #00ff88;
+            --text-main: #e0e0e0;
+            --font-tech: 'Orbitron', 'Segoe UI', sans-serif;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; cursor: crosshair; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Rajdhani', sans-serif;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 2px 2px, #1a1a1a 1px, transparent 0);
+            background-size: 40px 40px;
+        }
+
+        /* --- PRELOADER --- */
+        #loader {
+            position: fixed; height: 100vh; width: 100vw; background: #000;
+            z-index: 9999; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+        }
+
+        /* --- UI LAYOUT --- */
+        .glass-panel {
+            background: rgba(15, 18, 24, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            border-radius: 4px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        header {
+            height: 80px; display: flex; justify-content: space-between;
+            align-items: center; padding: 0 50px;
+            border-bottom: 1px solid var(--accent);
+            background: linear-gradient(90deg, #000 0%, #0f1218 100%);
+        }
+
+        .logo-area { display: flex; align-items: center; gap: 15px; }
+        .logo-text { font-family: 'Orbitron'; font-weight: 700; letter-spacing: 5px; color: var(--accent); }
+
+        .main-dashboard {
+            display: grid;
+            grid-template-columns: 350px 1fr 300px;
+            gap: 20px; padding: 20px; height: calc(100vh - 80px);
+        }
+
+        /* --- GAUGES & WIDGETS --- */
+        .hex-container {
+            position: relative; width: 200px; height: 200px; margin: 0 auto;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        .tds-circle {
+            width: 180px; height: 180px; border-radius: 50%;
+            border: 4px solid var(--accent);
+            display: flex; flex-direction: column; justify-content: center;
+            align-items: center; box-shadow: 0 0 30px var(--accent-glow);
+            transition: all 0.5s ease;
+        }
+
+        .tds-value { font-size: 4rem; font-family: 'Orbitron'; color: var(--accent); }
+
+        /* --- TERMINAL LOG --- */
+        #terminal {
+            background: #000; height: 200px; overflow-y: hidden;
+            padding: 15px; font-family: 'Courier New', monospace;
+            font-size: 0.8rem; color: var(--success);
+            border: 1px solid #222; margin-top: 15px;
+        }
+
+        /* --- BUTTONS --- */
+        .btn-cyber {
+            background: transparent; border: 1px solid var(--accent);
+            color: var(--accent); padding: 12px 25px;
+            font-family: 'Orbitron'; font-size: 0.7rem;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
+            transition: 0.3s; position: relative; overflow: hidden;
+        }
+
+        .btn-cyber:hover {
+            background: var(--accent); color: #000;
+            box-shadow: 0 0 20px var(--accent);
+        }
+
+        /* --- ANIMATIONS --- */
+        .scanning-bar {
+            position: absolute; width: 100%; height: 2px;
+            background: var(--accent); top: 0; left: 0;
+            animation: scan 3s infinite linear; opacity: 0.5;
+        }
+
+        @keyframes scan {
+            0% { top: 0; } 100% { top: 100%; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="loader">
+    <h2 class="logo-text">LOADING BLUECORE OS...</h2>
+    <div style="width: 200px; height: 2px; background: #222; margin-top: 20px;">
+        <div id="progress" style="width: 0%; height: 100%; background: var(--accent);"></div>
+    </div>
+</div>
+
+<header>
+    <div class="logo-area">
+        <i class="fa-solid fa-droplet-slash" style="color: var(--accent); font-size: 2rem;"></i>
+        <div class="logo-text">BLUECORE v.2.0</div>
+    </div>
+    <div id="clock" style="font-family: 'Orbitron'; color: var(--accent);">00:00:00</div>
+</header>
+
+<main class="main-dashboard">
+    <section class="glass-panel" style="padding: 20px;">
+        <h3 style="border-left: 4px solid var(--accent); padding-left: 10px; margin-bottom: 20px;">MÓDULOS ACTIVOS</h3>
+        
+        <div style="margin-bottom: 30px;">
+            <p style="font-size: 0.8rem; color: #888;">PROCESADOR CENTRAL</p>
+            <p style="font-family: 'Orbitron';">ESP32-DOWDQ6-V3</p>
+        </div>
+
+        <div class="hex-container">
+            <div class="scanning-bar"></div>
+            <div class="tds-circle" id="tds-ring">
+                <span style="font-size: 0.7rem;">CALIDAD TDS</span>
+                <div class="tds-value" id="tds-num">450</div>
+                <span style="font-size: 0.7rem;">PPM</span>
+            </div>
+        </div>
+
+        <div id="terminal">
+            <div>> SYSTEM READY...</div>
+            <div>> WAITING FOR WATER MASK...</div>
+        </div>
+    </section>
+
+    <section class="glass-panel" style="padding: 20px; position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="font-family: 'Orbitron';">ANÁLISIS ESPECTRAL</h3>
+            <div>
+                <button class="btn-cyber" onclick="startSequence()">INICIAR PURIFICACIÓN</button>
+                <button class="btn-cyber" style="border-color: var(--danger); color: var(--danger);" onclick="location.reload()">EMERGENCIA</button>
+            </div>
+        </div>
+
+        <canvas id="mainChart" style="margin-top: 30px;"></canvas>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+            <div class="glass-panel" style="padding: 15px; border-color: rgba(255,255,255,0.1);">
+                <i class="fa-solid fa-microchip"></i> LATENCIA: <span id="latency">24</span>ms
+            </div>
+            <div class="glass-panel" style="padding: 15px; border-color: rgba(255,255,255,0.1);">
+                <i class="fa-solid fa-wifi"></i> SEÑAL: <span id="signal">-42 dBm</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="glass-panel" style="padding: 20px;">
+        <h3 style="font-family: 'Orbitron'; margin-bottom: 20px;">STATUS</h3>
+        
+        <div id="status-box" style="padding: 20px; border: 2px solid var(--danger); text-align: center;">
+            <p id="status-label" style="color: var(--danger); font-weight: bold; font-size: 1.2rem;">AGUA NO SEGURA</p>
+        </div>
+
+        <div style="margin-top: 40px;">
+            <p>INTEGRIDAD DEL FILTRO</p>
+            <div style="width: 100%; height: 10px; background: #222; border-radius: 5px; margin-top: 10px;">
+                <div id="filter-bar" style="width: 100%; height: 100%; background: var(--accent); border-radius: 5px; transition: 1s;"></div>
+            </div>
+            <p id="filter-pct" style="text-align: right; font-size: 0.8rem; margin-top: 5px;">100%</p>
+        </div>
+
+        <div style="margin-top: 50px; text-align: center;">
+            <p style="font-size: 0.7rem; color: #555;">ESCANEÉ PARA MÓVIL</p>
+            <div style="background: white; width: 120px; height: 120px; margin: 10px auto; padding: 10px;">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://bluecore.site" alt="QR">
+            </div>
+        </div>
+    </section>
+</main>
+
+<script>
+    // --- Lógica del Reloj ---
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('clock').innerText = now.toLocaleTimeString();
+    }, 1000);
+
+    // --- Simulación de Carga ---
+    window.onload = () => {
+        let p = 0;
+        let int = setInterval(() => {
+            p += Math.random() * 20;
+            document.getElementById('progress').style.width = p + "%";
+            if (p >= 100) {
+                clearInterval(int);
+                gsap.to("#loader", { duration: 1, y: "-100%", ease: "expo.inOut" });
+            }
+        }, 100);
+    };
+
+    // --- Configuración de Gráfica ---
+    const ctx = document.getElementById('mainChart').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: Array(20).fill(''),
+            datasets: [{
+                label: 'Pureza en Tiempo Real',
+                data: Array(20).fill(450),
+                borderColor: '#00f2ff',
+                backgroundColor: 'rgba(0, 242, 255, 0.1)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { min: 0, max: 500, grid: { color: '#222' } },
+                x: { grid: { display: false } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // --- Terminal Log ---
+    function log(msg) {
+        const term = document.getElementById('terminal');
+        const line = document.createElement('div');
+        line.innerText = `> ${new Date().toLocaleTimeString()}: ${msg}`;
+        term.prepend(line);
+    }
+
+    // --- Motor de Simulación para Ganar la Feria ---
+    let tds = 450;
+    let isActive = false;
+
+    function startSequence() {
+        if(isActive) return;
+        isActive = true;
+        log("INICIANDO SECUENCIA DE FILTRADO MULTIETAPA...");
+        log("ACTIVANDO BOMBA SUMERGIBLE ESP32...");
+        
+        let interval = setInterval(() => {
+            if (tds > 32) {
+                // Caída de TDS simulada
+                tds -= Math.floor(Math.random() * 15) + 5;
+                if(tds < 32) tds = 32;
+
+                // Actualizar UI
+                document.getElementById('tds-num').innerText = tds;
+                chart.data.datasets[0].data.push(tds);
+                chart.data.datasets[0].data.shift();
+                chart.update('none');
+
+                // Cambio de estado visual
+                if (tds < 150) {
+                    const sb = document.getElementById('status-box');
+                    const sl = document.getElementById('status-label');
+                    const ring = document.getElementById('tds-ring');
+                    
+                    sb.style.borderColor = "var(--success)";
+                    sl.innerText = "AGUA POTABLE - SEGURO";
+                    sl.style.color = "var(--success)";
+                    ring.style.borderColor = "var(--success)";
+                    ring.style.boxShadow = "0 0 30px rgba(0, 255, 136, 0.4)";
+                }
+
+                if(Math.random() > 0.7) log(`SENSORES TDS: ${tds} PPM - ESTABILIZANDO...`);
+                
+                // Reducir barra de filtro sutilmente
+                let currentPct = parseInt(document.getElementById('filter-pct').innerText);
+                if(currentPct > 80) {
+                    document.getElementById('filter-pct').innerText = (currentPct - 0.5).toFixed(1) + "%";
+                    document.getElementById('filter-bar').style.width = (currentPct - 0.5) + "%";
+                }
+
+            } else {
+                clearInterval(interval);
+                log("PROCESO COMPLETADO CON ÉXITO.");
+                log("MODO DE MONITOREO CONTINUO ACTIVADO.");
+                isActive = false;
+            }
+        }, 400);
+    }
+</script>
+</body>
+</html>
