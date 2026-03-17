@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>BLUECORE | Control de Misión</title>
+    <style>
+        :root {
+            --cyan: #00f2ff;
+            --bg: #05070a;
+            --card: #0d1117;
+            --border: #1f2937;
+            --text: #e6edf3;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Contenedor Principal */
+        .dashboard {
+            width: 95vw;
+            height: 90vh;
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            grid-template-rows: auto 1fr auto;
+            gap: 15px;
+            padding: 20px;
+        }
+
+        /* Estilo de Paneles */
+        .panel {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header {
+            grid-column: 1 / 4;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            border-bottom: 2px solid var(--cyan);
+        }
+
+        h1 { font-size: 1.5rem; letter-spacing: 4px; color: var(--cyan); }
+
+        /* Pantalla de Calidad Central */
+        .main-display {
+            grid-column: 2 / 3;
+            border: 2px solid var(--cyan);
+            box-shadow: inset 0 0 20px rgba(0, 242, 255, 0.1);
+        }
+
+        .tds-value {
+            font-size: 8rem;
+            font-weight: 800;
+            color: var(--cyan);
+            text-shadow: 0 0 30px rgba(0, 242, 255, 0.5);
+        }
+
+        .unit { font-size: 1.5rem; color: #8b949e; }
+
+        /* Barra de progreso de purificación */
+        .progress-container {
+            width: 80%;
+            height: 8px;
+            background: #21262d;
+            border-radius: 10px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: var(--cyan);
+            transition: width 0.3s ease;
+        }
+
+        /* Consola de Datos */
+        #log {
+            width: 100%;
+            height: 120px;
+            background: #000;
+            font-family: monospace;
+            font-size: 0.8rem;
+            padding: 10px;
+            color: #58a6ff;
+            overflow-y: hidden;
+            border: 1px solid #30363d;
+        }
+
+        /* Botones */
+        .controls { grid-column: 1 / 4; display: flex; gap: 10px; justify-content: center; }
+
+        button {
+            padding: 15px 40px;
+            background: transparent;
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        button:hover { background: var(--cyan); color: #000; }
+
+        .status-dot {
+            width: 12px; height: 12px;
+            background: #238636;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            box-shadow: 0 0 10px #238636;
+        }
+
+        /* Estética de fondo sutil */
+        .scan-line {
+            position: absolute; width: 100%; height: 1px;
+            background: rgba(0, 242, 255, 0.1);
+            animation: move 4s linear infinite;
+        }
+
+        @keyframes move { 0% { top: 0; } 100% { top: 100%; } }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    <header>
+        <h1>BLUECORE <span style="font-weight: 200;">SYSTEM</span></h1>
+        <div><span class="status-dot"></span> ESP32: CONECTADO</div>
+    </header>
+
+    <aside class="panel">
+        <h3 style="margin-bottom: 10px;">INTEGRANTES</h3>
+        <ul style="list-style: none; font-size: 0.9rem; line-height: 1.8;">
+            <li>Jorge Reyes</li>
+            <li>Crismeily Nivar</li>
+            <li>Heimy Alcantara</li>
+            <li>Leudy Mejía</li>
+            <li>Genesis Pinales</li>
+            <li>Haely Nicol</li>
+            <li>Miguel José</li>
+        </ul>
+    </aside>
+
+    <main class="panel main-display">
+        <div class="scan-line"></div>
+        <p style="color: #8b949e;">CALIDAD ACTUAL (TDS)</p>
+        <div class="tds-value" id="val">450</div>
+        <div class="unit">PARTES POR MILLÓN (PPM)</div>
+        <div class="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+        <p id="status-label" style="margin-top: 15px; font-weight: bold; color: #f85149;">ESTADO: AGUA NO SEGURA</p>
+    </main>
+
+    <aside class="panel">
+        <h3>DIAGNÓSTICO</h3>
+        <div id="log">> Esperando inicio...</div>
+        <div style="margin-top: 20px; text-align: center;">
+            <p style="font-size: 0.7rem;">ESCANEA PARA MÓVIL</p>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=BLUECORE" style="margin-top:5px; border: 2px solid white;">
+        </div>
+    </aside>
+
+    <div class="controls">
+        <button onclick="runAnalysis()">INICIAR PURIFICACIÓN</button>
+        <button style="border-color: #30363d; color: #8b949e;" onclick="location.reload()">REINICIAR</button>
+    </div>
+</div>
+
+<script>
+    let tds = 450;
+    let running = false;
+
+    function addLog(msg) {
+        const log = document.getElementById('log');
+        log.innerHTML = `> ${msg}<br>` + log.innerHTML;
+    }
+
+    function runAnalysis() {
+        if(running) return;
+        running = true;
+        addLog("Iniciando bomba ESP32...");
+        addLog("Abriendo válvulas de filtrado...");
+
+        let interval = setInterval(() => {
+            if (tds > 35) {
+                tds -= Math.floor(Math.random() * 12) + 5;
+                if(tds < 35) tds = 35;
+                
+                // Actualizar números y barra
+                document.getElementById('val').innerText = tds;
+                let percent = ((450 - tds) / (450 - 35)) * 100;
+                document.getElementById('progress-bar').style.width = percent + "%";
+
+                if (tds < 150) {
+                    const lbl = document.getElementById('status-label');
+                    lbl.innerText = "ESTADO: AGUA POTABLE";
+                    lbl.style.color = "#39d353";
+                }
+
+                if(Math.random() > 0.8) addLog(`Analizando partículas: ${tds} PPM`);
+            } else {
+                clearInterval(interval);
+                addLog("Purificación terminada con éxito.");
+                running = false;
+            }
+        }, 300);
+    }
+</script>
+
+</body>
+</html>
